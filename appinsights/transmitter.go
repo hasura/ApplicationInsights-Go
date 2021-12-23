@@ -124,7 +124,7 @@ func (transmitter *httpTransmitter) Transmit(payload []byte, items telemetryBuff
 				for _, err := range result.response.Errors {
 					if err.Index < len(items) {
 						diagnosticsWriter.Printf("#%d - %d %s", err.Index, err.StatusCode, err.Message)
-						diagnosticsWriter.Printf("Telemetry item:\n\t%s", string(items[err.Index:err.Index+1].serialize()))
+						// diagnosticsWriter.Printf("Telemetry item:\n\t%s", string(items[err.Index:err.Index+1].serialize()))
 					}
 				}
 			}

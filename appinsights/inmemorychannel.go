@@ -366,14 +366,23 @@ func (channel *InMemoryChannel) transmitRetry(items telemetryBufferItems, retry 
 	payload := items.serialize()
 	retryTimeRemaining := retryTimeout
 
+	var errorResponseCode int
+	var errorResponseMessage string
+	var instrumentationKey string
+
 	for _, wait := range submit_retries {
 		result, err := channel.transmitter.Transmit(payload, items)
 		if err == nil && result != nil && result.IsSuccess() {
+			diagnosticsWriter.Printf("ResponseCode: %d, ResponseMessage: Success, InstrumentationKey: %s", result.statusCode, items[0].IKey)
 			return
 		}
 
 		if !retry {
 			diagnosticsWriter.Write("Refusing to retry telemetry submission (retry==false)")
+			errorResponseCode = result.statusCode
+			errorResponseMessage = result.response.Errors[0].Message
+			instrumentationKey = items[0].IKey
+			diagnosticsWriter.Printf("ResponseCode: %d, ResponseMessage: %s, InstrumentationKey: %s", errorResponseCode, errorResponseMessage, instrumentationKey)
 			return
 		}
 
@@ -383,10 +392,18 @@ func (channel *InMemoryChannel) transmitRetry(items telemetryBufferItems, retry 
 				// Filter down to failed items
 				payload, items = result.GetRetryItems(payload, items)
 				if len(payload) == 0 || len(items) == 0 {
+					errorResponseCode = result.statusCode
+					errorResponseMessage = result.response.Errors[0].Message
+					instrumentationKey = items[0].IKey
+					diagnosticsWriter.Printf("ResponseCode: %d, ResponseMessage: %s, InstrumentationKey: %s", errorResponseCode, errorResponseMessage, instrumentationKey)
 					return
 				}
 			} else {
 				diagnosticsWriter.Write("Cannot retry telemetry submission")
+				errorResponseCode = result.statusCode
+				errorResponseMessage = result.response.Errors[0].Message
+				instrumentationKey = items[0].IKey
+				diagnosticsWriter.Printf("ResponseCode: %d, ResponseMessage: %s, InstrumentationKey: %s", errorResponseCode, errorResponseMessage, instrumentationKey)
 				return
 			}
 
@@ -436,6 +453,7 @@ func (channel *InMemoryChannel) transmitRetry(items telemetryBufferItems, retry 
 	_, err := channel.transmitter.Transmit(payload, items)
 	if err != nil {
 		diagnosticsWriter.Write("Gave up transmitting payload; exhausted retries")
+		diagnosticsWriter.Printf("ResponseCode: %d, ResponseMessage: %s, InstrumentationKey: %s", errorResponseCode, errorResponseMessage, instrumentationKey)
 	}
 }
 
