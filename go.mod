@@ -1,4 +1,4 @@
-module github.com/microsoft/ApplicationInsights-Go
+module github.com/hasura/ApplicationInsights-Go
 
 go 1.12
 
